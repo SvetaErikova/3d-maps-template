@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eef0f2" />
+    <meta name="description" content="Interactive 3D building viewer with rotate, zoom, and pan controls." />
+    <title>Ak Bars · Building viewer</title>
+  </head>
+  <body>
+    <main id="viewer" aria-label="Interactive 3D building viewer"></main>
+    <header class="topbar">
+      <div><p class="eyebrow">BUILDING VIEWER</p><h1>Ak Bars<span class="badge">3D</span></h1></div>
+      <div class="nav-buttons">
+        <button id="point-1" type="button" disabled aria-pressed="false">1 точка</button>
+        <button id="point-2" type="button" disabled aria-pressed="false">2 точка</button>
+      </div>
+      <button id="reset" type="button" disabled title="Reset camera (R)">↺ <span>Reset view</span></button>
+      
+    </header>
+    <div id="status" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="status-text">Loading building…</span></div>
+    <p id="point-readout" class="point-readout" hidden aria-live="polite"></p>
+    <footer class="help" id="instructions">
+      <span><b>Rotate</b> Left drag</span><span><b>Zoom</b> Scroll</span><span><b>Pan</b> Right drag</span>
+      <span><b>Coordinates</b> P, then click</span>
+      <span class="touch-help">Touch: one finger to rotate · pinch to zoom · two fingers to pan</span>
+    </footer>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
