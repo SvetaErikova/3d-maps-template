@@ -30,13 +30,6 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="Skysoul">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="WindsurfPro">
         <serverdata>
           <mappings>
@@ -135,13 +128,6 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="konfeta">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="medline">
         <serverdata>
           <mappings>
@@ -233,21 +219,7 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="revital">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="ritmo">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="svar-go">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
@@ -262,13 +234,6 @@
         </serverdata>
       </paths>
       <paths name="timeweb">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="urban-spa">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
@@ -290,13 +255,6 @@
         </serverdata>
       </paths>
       <paths name="Крымский бриз">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="Манжерок">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />

@@ -10,7 +10,30 @@ const status = document.querySelector('#status');
 const statusText = document.querySelector('#status-text');
 const resetButton = document.querySelector('#reset');
 const readout = document.querySelector('#point-readout');
-const pointButtons = Object.fromEntries(POINT_IDS.map((id) => [id, document.querySelector(`#point-${id}`)]));
+const popup = document.querySelector('.popup');
+const popupTitle = popup.querySelector('.popup--content_title');
+const popupDescription = popup.querySelector('.popup--content_description');
+const popupClose = popup.querySelector('.popup--close');
+const pointButtons = Object.fromEntries(
+  [...document.querySelectorAll('[data-point]')].map((button) => [Number(button.dataset.point), button]),
+);
+const POINT_DESCRIPTION = [
+  {
+    id: 1,
+    title: 'Ресторан Tугай',
+    description: 'Ресторан отеля Ак Барс Гольф Резорт отличается уютным средиземноморским интерьером.',
+  },
+  {
+    id: 2,
+    title: 'Терраса',
+    description: ' Здесь каждый найдет для себя совершенное блюдо, ради которого захочется возвращаться вновь.',
+  },
+  {
+    id: 3,
+    title: 'Ресторан Tugay',
+    description: 'Restaurant of Ak Bars Golf Resort is distinguished by a cozy Mediterranean interior.',
+  },
+];
 
 function showError(message, error) {
   status.hidden = false;
@@ -29,7 +52,7 @@ async function init() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
   renderer.domElement.tabIndex = 0;
-  renderer.domElement.setAttribute('aria-label', 'Building model. Drag to rotate, scroll to zoom, right-drag to pan. Arrow keys pan. Press R to reset.');
+  renderer.domElement.setAttribute('aria-label', 'Building model. Drag to rotate, scroll to zoom. Press R to reset.');
   renderer.domElement.setAttribute('aria-describedby', 'instructions');
   container.appendChild(renderer.domElement);
 
@@ -41,11 +64,11 @@ async function init() {
   controls.dampingFactor = 0.075;
   controls.enableRotate = true;
   controls.enableZoom = true;
-  controls.enablePan = true;
-  controls.screenSpacePanning = true;
-  // Keep the camera above ground, with the building upright.
-  controls.maxPolarAngle = Math.PI / 2 - 0.015;
-  controls.listenToKeyEvents(renderer.domElement);
+  controls.enablePan = false;
+  controls.zoomToCursor = false;
+  controls.mouseButtons.RIGHT = -1;
+  // Stay above the ground grid. The user cannot pan this center; only point focus moves it.
+  controls.maxPolarAngle = Math.PI / 2 - 0.02;
 
   // A bundled procedural environment lights glass and metal without an HDR download.
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -59,8 +82,10 @@ async function init() {
   sunlight.position.set(8, 15, 10);
   scene.add(sunlight);
 
+  const orbitCenter = new THREE.Vector3(0, 0, 0);
   let radius = 1;
   let loaded = false;
+  let floorY = 0;
   let centeredModel = null;
   let markerSize = 0.35;
   let activePointId = 0;
@@ -107,6 +132,28 @@ async function init() {
     camera.position.copy(controls.target).addScaledVector(collisionDirection, limit);
   }
 
+  function keepCameraAboveGrid() {
+    if (camera.position.y >= floorY) return;
+
+    const offset = focusOffset.copy(camera.position).sub(controls.target);
+    const spherical = new THREE.Spherical().setFromVector3(offset);
+    const cosLimit = THREE.MathUtils.clamp(
+      (floorY - controls.target.y) / Math.max(spherical.radius, 1e-4),
+      -1,
+      1,
+    );
+    spherical.phi = Math.min(spherical.phi, Math.acos(cosLimit), controls.maxPolarAngle);
+    camera.position.copy(controls.target).add(offset.setFromSpherical(spherical));
+    camera.lookAt(controls.target);
+  }
+
+  function applyFloorLimit() {
+    const nearest = Math.max(controls.minDistance, 0.001);
+    const farthest = Math.max(controls.maxDistance, nearest);
+    const phiForDistance = (distance) => Math.acos(THREE.MathUtils.clamp(floorY / distance, -1, 1));
+    controls.maxPolarAngle = Math.min(Math.PI / 2 - 0.02, phiForDistance(nearest), phiForDistance(farthest));
+  }
+
   function flushControls() {
     const damping = controls.enableDamping;
     controls.enableDamping = false;
@@ -114,21 +161,69 @@ async function init() {
     controls.enableDamping = damping;
   }
 
-  function resetView() {
-    if (!loaded) return;
-    focusAnim = null;
-    // Flush remaining drag inertia before assigning a new camera position.
-    flushControls();
+  function homePose() {
     // A bounding sphere fits any model orientation, including narrow mobile screens.
     const halfVerticalFov = THREE.MathUtils.degToRad(camera.fov / 2);
     const halfHorizontalFov = Math.atan(Math.tan(halfVerticalFov) * camera.aspect);
     const distance = radius / Math.sin(Math.min(halfVerticalFov, halfHorizontalFov)) * 1.18;
     controls.maxDistance = Math.max(radius * 15, distance * 2);
-    controls.target.set(0, 0, 0);
-    camera.position.copy(new THREE.Vector3(1, 0.65, 1).normalize().multiplyScalar(distance));
-    camera.lookAt(controls.target);
-    controls.saveState();
-    controls.reset();
+    applyFloorLimit();
+    return {
+      target: orbitCenter.clone(),
+      position: new THREE.Vector3(1, 0.65, 1).normalize().multiplyScalar(distance),
+    };
+  }
+
+  function startCameraAnimation(endTarget, endSpherical) {
+    flushControls();
+    const startOffset = focusOffset.copy(camera.position).sub(controls.target);
+    const startSpherical = new THREE.Spherical().setFromVector3(startOffset);
+    if (startSpherical.radius < 1e-4) startSpherical.set(1, 1, 1);
+
+    const deltaTheta = Math.atan2(
+      Math.sin(endSpherical.theta - startSpherical.theta),
+      Math.cos(endSpherical.theta - startSpherical.theta),
+    );
+    if (reduceMotion) {
+      controls.target.copy(endTarget);
+      camera.position.copy(endTarget).add(focusOffset.setFromSpherical(endSpherical));
+      return;
+    }
+    focusAnim = {
+      start: performance.now(),
+      duration: 650 + (Math.abs(deltaTheta) / Math.PI) * 550,
+      startTarget: controls.target.clone(),
+      endTarget,
+      startTheta: startSpherical.theta,
+      startPhi: startSpherical.phi,
+      startRadius: startSpherical.radius,
+      endPhi: endSpherical.phi,
+      endRadius: endSpherical.radius,
+      deltaTheta,
+    };
+  }
+
+  function resetView(immediate = false) {
+    if (!loaded) return;
+    focusAnim = null;
+    activePointId = 0;
+    updatePointButtons();
+    closePopup();
+    const { position } = homePose();
+    if (immediate || reduceMotion) {
+      flushControls();
+      controls.target.copy(orbitCenter);
+      camera.position.copy(position);
+      camera.lookAt(orbitCenter);
+      controls.saveState();
+      controls.reset();
+      return;
+    }
+    const endSpherical = new THREE.Spherical().setFromVector3(position);
+    endSpherical.phi = THREE.MathUtils.clamp(endSpherical.phi, controls.minPolarAngle, controls.maxPolarAngle);
+    endSpherical.radius = THREE.MathUtils.clamp(endSpherical.radius, controls.minDistance, controls.maxDistance);
+    endSpherical.makeSafe();
+    startCameraAnimation(orbitCenter.clone(), endSpherical);
   }
 
   function resize() {
@@ -145,7 +240,6 @@ async function init() {
   function setPickMode(enabled) {
     pickMode = enabled;
     controls.enableRotate = !enabled;
-    controls.enablePan = !enabled;
     document.body.classList.toggle('is-picking', enabled);
     if (!enabled) return;
     readout.hidden = false;
@@ -175,11 +269,7 @@ async function init() {
   }
 
   function focusOn(position) {
-    flushControls();
-    const startOffset = focusOffset.copy(camera.position).sub(controls.target);
-    const startSpherical = new THREE.Spherical().setFromVector3(startOffset);
-    if (startSpherical.radius < 1e-4) startSpherical.set(1, 1, 1);
-
+    const startOffset = camera.position.clone().sub(controls.target);
     // Side of the building: horizontal direction from the model center through the point.
     // The camera swings around to that side instead of staying on the current facade.
     const horizontal = new THREE.Vector3(position.x, 0, position.z);
@@ -194,29 +284,30 @@ async function init() {
     endSpherical.phi = THREE.MathUtils.clamp(endSpherical.phi, controls.minPolarAngle, controls.maxPolarAngle);
     endSpherical.radius = THREE.MathUtils.clamp(endSpherical.radius, controls.minDistance, controls.maxDistance);
     endSpherical.makeSafe();
+    startCameraAnimation(position.clone(), endSpherical);
+  }
 
-    const endTarget = position.clone();
-    const deltaTheta = Math.atan2(
-      Math.sin(endSpherical.theta - startSpherical.theta),
-      Math.cos(endSpherical.theta - startSpherical.theta),
-    );
-    if (reduceMotion) {
-      controls.target.copy(endTarget);
-      camera.position.copy(endTarget).add(focusOffset.setFromSpherical(endSpherical));
-      return;
+  function placePointMarkers() {
+    for (const id of POINT_IDS) {
+      const position = rememberPoint(id);
+      const marker = createPointMarker(id, markerSize);
+      marker.position.copy(position);
+      scene.add(marker);
+      markers.set(id, marker);
     }
-    focusAnim = {
-      start: performance.now(),
-      duration: 650 + (Math.abs(deltaTheta) / Math.PI) * 550,
-      startTarget: controls.target.clone(),
-      endTarget,
-      startTheta: startSpherical.theta,
-      startPhi: startSpherical.phi,
-      startRadius: startSpherical.radius,
-      endPhi: endSpherical.phi,
-      endRadius: endSpherical.radius,
-      deltaTheta,
-    };
+  }
+  function openPopup(id) {
+    const item = POINT_DESCRIPTION.find((entry) => entry.id === id);
+    if (!item) return;
+    popupTitle.textContent = item.title;
+    popupDescription.textContent = item.description;
+    popup.classList.add('is-open');
+    popup.setAttribute('aria-hidden', 'false');
+  }
+
+  function closePopup() {
+    popup.classList.remove('is-open');
+    popup.setAttribute('aria-hidden', 'true');
   }
 
   function showPoint(id) {
@@ -261,9 +352,14 @@ async function init() {
     }).catch(() => {});
   }
 
-  resetButton.addEventListener('click', resetView);
+  resetButton.addEventListener('click', () => resetView());
+  popupClose.addEventListener('click', () => resetView());
   for (const id of POINT_IDS) {
-    pointButtons[id].addEventListener('click', () => showPoint(id));
+    const button = pointButtons[id];
+    button.addEventListener('click', () => {
+      showPoint(id);
+      openPopup(Number(button.getAttribute('data-point_description_id')));
+    });
   }
   controls.addEventListener('start', () => {
     focusAnim = null;
@@ -305,7 +401,11 @@ async function init() {
       const t = Math.min(1, elapsed / focusAnim.duration);
       const k = 1 - Math.pow(1 - t, 3);
       const theta = focusAnim.startTheta + focusAnim.deltaTheta * k;
-      const phi = THREE.MathUtils.lerp(focusAnim.startPhi, focusAnim.endPhi, k);
+      const phi = THREE.MathUtils.clamp(
+        THREE.MathUtils.lerp(focusAnim.startPhi, focusAnim.endPhi, k),
+        controls.minPolarAngle,
+        controls.maxPolarAngle,
+      );
       const dist = THREE.MathUtils.lerp(focusAnim.startRadius, focusAnim.endRadius, k);
       controls.target.lerpVectors(focusAnim.startTarget, focusAnim.endTarget, k);
       camera.position.copy(controls.target).add(focusOffset.setFromSphericalCoords(dist, phi, theta));
@@ -319,6 +419,7 @@ async function init() {
     }
     controls.update();
     constrainCamera();
+    keepCameraAboveGrid();
     renderer.render(scene, camera);
   });
 
@@ -352,6 +453,7 @@ async function init() {
     controls.minDistance = radius * 0.15;
 
     const groundY = (bounds.min.y - center.y) * scale - 0.015;
+    floorY = groundY + 0.02;
     const grid = new THREE.GridHelper(50, 50, 0xcbd2d6, 0xdce1e4);
     grid.position.y = groundY;
     grid.material.transparent = true;
@@ -359,7 +461,8 @@ async function init() {
     scene.add(grid);
 
     loaded = true;
-    resetView();
+    resetView(true);
+    placePointMarkers();
     resetButton.disabled = false;
     for (const id of POINT_IDS) pointButtons[id].disabled = false;
     status.hidden = true;

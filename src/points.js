@@ -1,20 +1,22 @@
-// Markers for the two point buttons.
+// Markers for the point buttons.
 // Replace null with { x, y, z } to pin a point. See POINTS.md.
 
 import * as THREE from 'three';
 
-export const POINT_IDS = [1, 2];
+export const POINT_IDS = [1, 2, 3];
 
 // Scene coordinates after the model is normalized: origin at the bounding-box
 // center, longest side = 10, Y up. null = random surface point on first click.
 export const POINT_POSITIONS = {
   1: { x: -3.098, y: -0.229, z: 1.047 },
   2: { x: 3.469, y: 0.162, z: -2.892 },
+  3: { x: -0.658, y: -0.318, z: 4.766 },
 };
 
 const POINT_COLORS = {
   1: '#2f7d72',
   2: '#c46a32',
+  3: '#3a6f9a',
 };
 
 function isPosition(value) {
