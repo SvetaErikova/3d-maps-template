@@ -130,6 +130,7 @@ export function createPointMarker(id, size) {
   sprite.name = `point-${id}`;
   sprite.scale.setScalar(size);
   sprite.renderOrder = 10;
+  sprite.userData.pointId = id;
   sprite.userData.baseScale = size;
   return sprite;
 }

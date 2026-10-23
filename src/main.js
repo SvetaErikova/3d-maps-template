@@ -95,7 +95,7 @@ async function init() {
   const pointPositions = new Map();
   const pointer = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
-  const pointerStart = { x: 0, y: 0, picking: false, button: 0 };
+  const pointerStart = { x: 0, y: 0, picking: false, button: 0, markerId: 0 };
   const focusOffset = new THREE.Vector3();
   const collisionRaycaster = new THREE.Raycaster();
   const collisionDirection = new THREE.Vector3();
@@ -241,6 +241,7 @@ async function init() {
     pickMode = enabled;
     controls.enableRotate = !enabled;
     document.body.classList.toggle('is-picking', enabled);
+    if (enabled) renderer.domElement.classList.remove('is-point-hover');
     if (!enabled) return;
     readout.hidden = false;
     readout.textContent = 'Кликните по зданию — координата скопируется';
@@ -310,6 +311,22 @@ async function init() {
     popup.setAttribute('aria-hidden', 'true');
   }
 
+  function selectPoint(id) {
+    const button = pointButtons[id];
+    showPoint(id);
+    openPopup(Number(button.getAttribute('data-point_description_id')));
+  }
+
+  function markerAt(event) {
+    if (!loaded || markers.size === 0) return 0;
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects([...markers.values()], false);
+    return hits[0]?.object.userData.pointId || 0;
+  }
+
   function showPoint(id) {
     if (!loaded || !centeredModel) return;
     const position = rememberPoint(id);
@@ -355,11 +372,7 @@ async function init() {
   resetButton.addEventListener('click', () => resetView());
   popupClose.addEventListener('click', () => resetView());
   for (const id of POINT_IDS) {
-    const button = pointButtons[id];
-    button.addEventListener('click', () => {
-      showPoint(id);
-      openPopup(Number(button.getAttribute('data-point_description_id')));
-    });
+    pointButtons[id].addEventListener('click', () => selectPoint(id));
   }
   controls.addEventListener('start', () => {
     focusAnim = null;
@@ -382,13 +395,36 @@ async function init() {
     pointerStart.y = event.clientY;
     pointerStart.button = event.button;
     pointerStart.picking = pickMode;
+    pointerStart.markerId = 0;
+    if (pickMode || event.button !== 0 || !loaded) return;
+    const id = markerAt(event);
+    if (!id) return;
+    pointerStart.markerId = id;
+    renderer.domElement.setPointerCapture(event.pointerId);
+    event.stopPropagation();
+  }, true);
+  renderer.domElement.addEventListener('pointermove', (event) => {
+    const hovering = !pickMode && pointerStart.markerId === 0 && markerAt(event) !== 0;
+    renderer.domElement.classList.toggle('is-point-hover', hovering || pointerStart.markerId !== 0);
   });
   renderer.domElement.addEventListener('pointerup', (event) => {
-    if (!pointerStart.picking || !pickMode || event.button !== 0 || pointerStart.button !== 0) return;
     const dx = event.clientX - pointerStart.x;
     const dy = event.clientY - pointerStart.y;
-    if (dx * dx + dy * dy > 36) return;
-    pickAt(event);
+    const moved = dx * dx + dy * dy > 36;
+    if (pointerStart.picking && pickMode && event.button === 0 && pointerStart.button === 0) {
+      if (!moved) pickAt(event);
+      return;
+    }
+    const markerId = pointerStart.markerId;
+    pointerStart.markerId = 0;
+    renderer.domElement.classList.toggle('is-point-hover', !pickMode && markerAt(event) !== 0);
+    if (!markerId || event.button !== 0 || pointerStart.button !== 0 || moved) return;
+    selectPoint(markerId);
+  });
+  renderer.domElement.addEventListener('pointercancel', () => {
+    pointerStart.markerId = 0;
+    pointerStart.picking = false;
+    renderer.domElement.classList.remove('is-point-hover');
   });
   renderer.domElement.addEventListener('webglcontextlost', (event) => {
     event.preventDefault();

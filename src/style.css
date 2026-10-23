@@ -88,6 +88,10 @@ body.is-picking canvas {
     cursor: crosshair;
 }
 
+#viewer canvas.is-point-hover {
+    cursor: pointer;
+}
+
 .point-readout {
     position: absolute;
     bottom: 84px;
