@@ -47,39 +47,64 @@ canvas:focus-visible {
 .nav-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 24px;
+    .nav-buttons_item{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    div{
+        display: flex;
+        gap: 8px;
+    }
 }
 
 .nav-buttons button {
     white-space: nowrap;
 }
 
+.nav-buttons button[data-building][aria-pressed="true"] {
+    background: #243832;
+    border-color: #243832;
+    color: #fff;
+}
+
+.nav-buttons button[data-building][aria-pressed="true"]:hover {
+    background: #1b2c27;
+}
+
+.nav-buttons button[data-pin="1"][aria-pressed="true"],
 .nav-buttons button[data-point="1"][aria-pressed="true"] {
     background: #2f7d72;
     border-color: #2f7d72;
     color: #fff;
 }
 
+.nav-buttons button[data-pin="2"][aria-pressed="true"],
 .nav-buttons button[data-point="2"][aria-pressed="true"] {
     background: #c46a32;
     border-color: #c46a32;
     color: #fff;
 }
 
+.nav-buttons button[data-pin="3"][aria-pressed="true"],
 .nav-buttons button[data-point="3"][aria-pressed="true"] {
     background: #3a6f9a;
     border-color: #3a6f9a;
     color: #fff;
 }
 
+.nav-buttons button[data-pin="1"][aria-pressed="true"]:hover,
 .nav-buttons button[data-point="1"][aria-pressed="true"]:hover {
     background: #28685f;
 }
 
+.nav-buttons button[data-pin="2"][aria-pressed="true"]:hover,
 .nav-buttons button[data-point="2"][aria-pressed="true"]:hover {
     background: #b15e2c;
 }
 
+.nav-buttons button[data-pin="3"][aria-pressed="true"]:hover,
 .nav-buttons button[data-point="3"][aria-pressed="true"]:hover {
     background: #315e84;
 }

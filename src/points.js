@@ -3,14 +3,14 @@
 
 import * as THREE from 'three';
 
-export const POINT_IDS = [1, 2, 3];
-
-// Scene coordinates after the model is normalized: origin at the bounding-box
-// center, longest side = 10, Y up. null = random surface point on first click.
 export const POINT_POSITIONS = {
-  1: { x: -3.098, y: -0.229, z: 1.047 },
-  2: { x: 3.469, y: 0.162, z: -2.892 },
-  3: { x: -0.658, y: -0.318, z: 4.766 },
+  1: { x: -11.731, y: -0.032, z: -2.335 },
+  2: { x: -9.783, y: -0.617, z: -0.009 },
+  3: { x: -11.504, y: -0.375, z: 2.375 },
+  // Здание 2. zoom — во сколько раз ближе камера. 2 = в два раза ближе.
+  4: { x: 5.3, y: -1.6, z: -1.5, zoom: 6 },
+  5: { x: 6.335, y: -0.620, z: 2.910, zoom: 0},
+  6: { x: 3.963, y: -0.599, z: 3.198 , zoom: 4},
 };
 
 const POINT_COLORS = {
@@ -18,7 +18,6 @@ const POINT_COLORS = {
   2: '#c46a32',
   3: '#3a6f9a',
 };
-
 function isPosition(value) {
   return !!value
     && Number.isFinite(value.x)
@@ -82,17 +81,18 @@ export function formatPoint(position) {
   return `{ x: ${axis(position.x)}, y: ${axis(position.y)}, z: ${axis(position.z)} }`;
 }
 
-export function resolvePointPosition(root, id, avoidPoint) {
+export function pointZoom(id) {
+  const zoom = POINT_POSITIONS[id]?.zoom;
+  return Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+}
+
+export function resolvePointPosition(root, id) {
   const configured = POINT_POSITIONS[id];
   if (isPosition(configured)) {
     return new THREE.Vector3(configured.x, configured.y, configured.z);
   }
 
-  let point = sampleSurfacePoint(root);
-  if (avoidPoint && point.distanceTo(avoidPoint) < 0.4) {
-    point = sampleSurfacePoint(root);
-  }
-  return point;
+  return sampleSurfacePoint(root);
 }
 
 function createMarkerTexture(id, color) {
@@ -118,9 +118,9 @@ function createMarkerTexture(id, color) {
   return texture;
 }
 
-export function createPointMarker(id, size) {
+export function createPointMarker(id, size, color, label = id) {
   const material = new THREE.SpriteMaterial({
-    map: createMarkerTexture(id, POINT_COLORS[id]),
+    map: createMarkerTexture(label, color || POINT_COLORS[id] || '#2f7d72'),
     transparent: true,
     depthTest: false,
     depthWrite: false,

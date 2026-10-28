@@ -12,12 +12,25 @@
     <header class="topbar">
       <div><p class="eyebrow">BUILDING VIEWER</p><h1>Ak Bars<span class="badge">3D</span></h1></div>
       <div class="nav-buttons">
-        <button type="button" data-point="1" data-point_description_id="1" disabled aria-pressed="false">1 точка</button>
-        <button type="button" data-point="2" data-point_description_id="2" disabled aria-pressed="false">2 точка</button>
-        <button type="button" data-point="3" data-point_description_id="3" disabled aria-pressed="false">3 точка</button>
+					<div class="nav-buttons_item">
+							<div>  <button type="button" data-building="0" disabled aria-pressed="false">Здание 1</button></div>
+							<div>
+									<button type="button" data-point="1" data-pin="1" data-point_description_id="1" disabled aria-pressed="false">1 · точка 1</button>
+									<button type="button" data-point="2" data-pin="2" data-point_description_id="2" disabled aria-pressed="false">1 · точка 2</button>
+									<button type="button" data-point="3" data-pin="3" data-point_description_id="3" disabled aria-pressed="false">1 · точка 3</button></div>
+					</div>
+					<div class="nav-buttons_item">
+							<div> <button type="button" data-building="1" disabled aria-pressed="false">Здание 2</button></div>
+							<div>
+									<button type="button" data-point="4" data-pin="1" data-point_description_id="4" disabled aria-pressed="false">Ресторан</button>
+									<button type="button" data-point="5" data-pin="2" data-point_description_id="5" disabled aria-pressed="false">2 · точка 2</button>
+									<button type="button" data-point="6" data-pin="3" data-point_description_id="6" disabled aria-pressed="false">2 · точка 3</button></div>
+					</div>
+
+
       </div>
       <button id="reset" type="button" disabled title="Reset camera (R)">↺ <span>Reset view</span></button>
-      
+
     </header>
     <div id="status" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="status-text">Loading building…</span></div>
     <p id="point-readout" class="point-readout" hidden aria-live="polite"></p>
@@ -31,6 +44,7 @@
 		</div>
     <footer class="help" id="instructions">
       <span><b>Rotate</b> Left drag</span><span><b>Zoom</b> Scroll</span>
+      <span><b>Building</b> Click a model</span>
       <span><b>Points</b> Click a marker</span>
       <span><b>Coordinates</b> P, then click</span>
       <span class="touch-help">Touch: one finger to rotate · pinch to zoom</span>
